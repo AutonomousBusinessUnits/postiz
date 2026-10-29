@@ -1,15 +1,21 @@
 # Fork (AutonomousBusinessUnits/postiz): Temporal worker as a Vercel Daemon
 # (always-on, outbound only). See FORK.md.
-FROM node:22.23.4-bookworm-slim
+FROM node:22.23.4-bookworm-slim AS build
 RUN apt-get update && apt-get install -y --no-install-recommends g++ make python3 ca-certificates openssl curl \
  && rm -rf /var/lib/apt/lists/*
 # Temporal CLI: only used for TEMPORAL_BRIDGE=postgres (dev server inside the Daemon)
-RUN curl -sSfL https://temporal.download/cli.sh | sh -s -- --dir /usr/local && ln -sf /usr/local/bin/temporal /usr/bin/temporal || true
+RUN curl -sSfL https://temporal.download/cli.sh | sh -s -- --dir /usr/local
 RUN npm --no-update-notifier --no-fund --global install pnpm@10.6.1
 ENV CI=true
 WORKDIR /app
 COPY . /app
 RUN pnpm install --frozen-lockfile --config.confirmModulesPurge=false
-RUN NODE_OPTIONS="--max-old-space-size=4096" pnpm run build:orchestrator
+RUN NODE_OPTIONS="--max-old-space-size=4096" pnpm run build:orchestrator \
+ && rm -rf apps/frontend apps/extension apps/sdk apps/commands /root/.cache /root/.local/share/pnpm
+
+FROM node:22.23.4-bookworm-slim
+RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates openssl && rm -rf /var/lib/apt/lists/*
+COPY --from=build /usr/local/bin/temporal /usr/local/bin/temporal
+COPY --from=build /app /app
 ENV NODE_ENV=production
 CMD ["sh", "/app/var/vercel/worker.sh"]
