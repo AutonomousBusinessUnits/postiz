@@ -1,0 +1,6 @@
+.pnpm-store
+node_modules
+**/node_modules
+.git
+apps/*/dist
+apps/frontend/.next
