@@ -1839,3 +1839,33 @@ model Announcement {
   color       AnnouncementColor @default(INFO)
   createdAt   DateTime          @default(now())
 }
+
+// Fork (AutonomousBusinessUnits/postiz): Postgres-backed key/value store used
+// when REDIS_URL is unset and KV_PROVIDER=postgres (serverless backend with no
+// Redis). Covers the commands Postiz uses: get, set (EX/NX), del, rpush,
+// lrange, expire.
+model KvEntry {
+  key       String    @id
+  value     String?
+  list      String[]  @default([])
+  expiresAt DateTime?
+
+  @@index([expiresAt])
+}
+
+// Fork: outbox for TEMPORAL_BRIDGE=postgres. A backend Function cannot reach a
+// Temporal server that only the worker Daemon can see (Daemons take no inbound
+// traffic), so client calls are queued here and executed by the Daemon.
+// Not needed with Temporal Cloud (TEMPORAL_ADDRESS/API_KEY).
+model TemporalBridgeCall {
+  id        String   @id @default(uuid())
+  op        String
+  args      Json
+  status    String   @default("pending")
+  result    Json?
+  error     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status, createdAt])
+}

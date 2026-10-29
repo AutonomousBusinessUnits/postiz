@@ -25,6 +25,10 @@ import { UploadFactory } from '@gitroom/nestjs-libraries/upload/upload.factory';
 import { SaveMediaInformationDto } from '@gitroom/nestjs-libraries/dtos/media/save.media.information.dto';
 import { VideoDto } from '@gitroom/nestjs-libraries/dtos/videos/video.dto';
 import { VideoFunctionDto } from '@gitroom/nestjs-libraries/dtos/videos/video.function.dto';
+// Fork: Vercel Blob direct uploads (STORAGE_PROVIDER=vercel-blob)
+import { handleUpload, type HandleUploadBody } from '@vercel/blob/client';
+import { head } from '@vercel/blob';
+import { BLOB_ALLOWED_MIME_TYPES } from '@gitroom/nestjs-libraries/upload/vercel.blob.storage';
 
 @ApiTags('Media')
 @Controller('/media')
@@ -99,6 +103,73 @@ export class MediaController {
       file.path,
       file.originalname
     );
+  }
+
+  // Fork: hands the browser a short-lived client token so the file goes
+  // straight to Vercel Blob (no 4.5 MB Function body limit). The browser
+  // then calls /media/blob-complete; no upload-completed webhook is used,
+  // because it would arrive without the user's session.
+  @Post('/blob-upload')
+  async blobUpload(
+    @GetOrgFromRequest() org: Organization,
+    @Req() req: Request,
+    @Body() body: HandleUploadBody
+  ) {
+    if (process.env.STORAGE_PROVIDER !== 'vercel-blob') {
+      throw new BadRequestException('Blob uploads are not enabled');
+    }
+    return handleUpload({
+      body,
+      request: req as any,
+      onBeforeGenerateToken: async (pathname: string) => {
+        if (!/^uploads\/[\w.\-]+$/.test(pathname)) {
+          throw new BadRequestException('Invalid path');
+        }
+        return {
+          allowedContentTypes: BLOB_ALLOWED_MIME_TYPES,
+          maximumSizeInBytes: 1024 * 1024 * 1024,
+          addRandomSuffix: true,
+          tokenPayload: JSON.stringify({ org: org.id }),
+        };
+      },
+    });
+  }
+
+  @Post('/blob-complete')
+  async blobComplete(
+    @GetOrgFromRequest() org: Organization,
+    @Body('url') url: string,
+    @Body('originalName') originalName: string
+  ) {
+    if (process.env.STORAGE_PROVIDER !== 'vercel-blob') {
+      throw new BadRequestException('Blob uploads are not enabled');
+    }
+    let parsed: URL;
+    try {
+      parsed = new URL(url);
+    } catch {
+      throw new BadRequestException('Invalid url');
+    }
+    if (
+      parsed.protocol !== 'https:' ||
+      !parsed.hostname.endsWith('.public.blob.vercel-storage.com') ||
+      !parsed.pathname.startsWith('/uploads/')
+    ) {
+      throw new BadRequestException('Invalid url');
+    }
+    // the blob must exist in this project's store (head uses its token)
+    const meta = await head(url).catch(() => null);
+    if (!meta) {
+      throw new BadRequestException('Upload not found');
+    }
+    const name = parsed.pathname.split('/').pop()!;
+    const saved = await this._mediaService.saveUploadedFile(
+      org.id,
+      name,
+      meta.url,
+      originalName || undefined
+    );
+    return { Location: meta.url, saved };
   }
 
   @Post('/save-media')

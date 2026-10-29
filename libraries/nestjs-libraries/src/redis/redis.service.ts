@@ -1,4 +1,5 @@
 import { Redis } from 'ioredis';
+import { PgKv } from './pg.kv';
 
 // Create a mock Redis implementation for testing environments
 class MockRedis {
@@ -36,9 +37,14 @@ class MockRedis {
 }
 
 // Use real Redis if REDIS_URL is defined, otherwise use MockRedis
+// Fork: KV_PROVIDER=postgres keeps this state in Postgres (pg.kv.ts) when
+// there is no Redis, e.g. a serverless backend on Vercel.
+export const kvIsRedis = !!process.env.REDIS_URL;
 export const ioRedis = process.env.REDIS_URL
   ? new Redis(process.env.REDIS_URL, {
       maxRetriesPerRequest: null,
       connectTimeout: 10000,
     })
+  : process.env.KV_PROVIDER === 'postgres'
+  ? (new PgKv() as unknown as Redis)
   : (new MockRedis() as unknown as Redis); // Type cast to Redis to maintain interface compatibility

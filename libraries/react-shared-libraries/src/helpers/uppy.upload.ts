@@ -3,6 +3,7 @@ import AwsS3Multipart from '@uppy/aws-s3';
 import sha256 from 'sha256';
 import Transloadit from '@uppy/transloadit';
 import { BasePlugin } from '@uppy/core';
+import { VercelBlobUploader } from './vercel.blob.uploader';
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -200,6 +201,12 @@ export const getUppyUploadPlugin = (
               ...props,
             }),
         },
+      };
+    // Fork: browser -> Vercel Blob direct upload
+    case 'vercel-blob':
+      return {
+        plugin: VercelBlobUploader,
+        options: { fetch, backendUrl },
       };
     case 'local':
       return {

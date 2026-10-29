@@ -1,3 +1,4 @@
+import { SourceLink } from '@gitroom/frontend/components/fork/source.link';
 export const dynamic = 'force-dynamic';
 import '../global.scss';
 import 'react-tooltip/dist/react-tooltip.css';
@@ -21,7 +22,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
         <VariableContextComponent
           language="en"
           storageProvider={
-            process.env.STORAGE_PROVIDER! as 'local' | 'cloudflare'
+            process.env.STORAGE_PROVIDER! as 'local' | 'cloudflare' | 'vercel-blob'
           }
           stripeClient=""
           environment={process.env.NODE_ENV!}
@@ -68,6 +69,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
             {children}
           </LayoutContext>
         </VariableContextComponent>
+        <SourceLink />
       </body>
     </html>
   );

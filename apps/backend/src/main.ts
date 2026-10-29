@@ -59,6 +59,18 @@ async function start() {
     },
   });
 
+  // Fork: behind a same-origin rewrite (Vercel Services: /api/* -> backend)
+  // the prefix may arrive intact; strip it so routes match as upstream.
+  const stripPrefix = process.env.BACKEND_STRIP_PREFIX;
+  if (stripPrefix) {
+    app.use((req: any, _res: any, next: any) => {
+      if (req.url === stripPrefix || req.url.startsWith(stripPrefix + '/') || req.url.startsWith(stripPrefix + '?')) {
+        req.url = req.url.slice(stripPrefix.length) || '/';
+      }
+      next();
+    });
+  }
+
   await startMcp(app);
 
   app.useGlobalPipes(

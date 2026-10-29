@@ -1,3 +1,4 @@
+import { SourceLink } from '@gitroom/frontend/components/fork/source.link';
 import { MantineWrapper } from '@gitroom/react/helpers/mantine.wrapper';
 
 export const dynamic = 'force-dynamic';
@@ -23,7 +24,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
         <VariableContextComponent
           language="en"
           storageProvider={
-            process.env.STORAGE_PROVIDER! as 'local' | 'cloudflare'
+            process.env.STORAGE_PROVIDER! as 'local' | 'cloudflare' | 'vercel-blob'
           }
           stripeClient=""
           environment={process.env.NODE_ENV!}
@@ -72,6 +73,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
             </LayoutContext>
           </MantineWrapper>
         </VariableContextComponent>
+        <SourceLink />
       </body>
     </html>
   );

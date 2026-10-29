@@ -1,6 +1,7 @@
 import { CloudflareStorage } from './cloudflare.storage';
 import { IUploadProvider } from './upload.interface';
 import { LocalStorage } from './local.storage';
+import { VercelBlobStorage } from './vercel.blob.storage';
 import { IMediaProcessor } from './media.processor.interface';
 import { RunPodMediaProcessor } from './runpod.media.processor';
 import {
@@ -26,6 +27,8 @@ export class UploadFactory {
           process.env.CLOUDFLARE_BUCKETNAME!,
           process.env.CLOUDFLARE_BUCKET_URL!
         );
+      case 'vercel-blob':
+        return new VercelBlobStorage();
       default:
         throw new Error(`Invalid storage type ${storageProvider}`);
     }

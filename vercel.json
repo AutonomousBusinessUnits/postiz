@@ -1,0 +1,28 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "services": {
+    "web": {
+      "root": "apps/frontend",
+      "framework": "nextjs",
+      "installCommand": "cd ../.. && pnpm install --frozen-lockfile",
+      "buildCommand": "cd ../.. && NODE_OPTIONS=--max-old-space-size=6144 pnpm --filter ./apps/frontend run build"
+    },
+    "api": {
+      "root": "./",
+      "runtime": "container",
+      "entrypoint": "Dockerfile.backend"
+    }
+  },
+  "daemons": {
+    "worker": {
+      "root": "./",
+      "entrypoint": "Dockerfile.orchestrator",
+      "instances": { "iad1": 1 },
+      "resources": { "requests": { "memory": "2Gi" } }
+    }
+  },
+  "rewrites": [
+    { "source": "/api/(.*)", "destination": { "service": "api" } },
+    { "source": "/(.*)", "destination": { "service": "web" } }
+  ]
+}

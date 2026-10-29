@@ -14,7 +14,7 @@ interface VariableContextInterface {
   mainUrl: string;
   frontEndUrl: string;
   plontoKey: string;
-  storageProvider: 'local' | 'cloudflare';
+  storageProvider: 'local' | 'cloudflare' | 'vercel-blob';
   backendUrl: string;
   environment: string;
   discordUrl: string;

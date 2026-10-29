@@ -1,4 +1,15 @@
-import { TemporalModule } from 'nestjs-temporal-core';
+import { Global, Module } from '@nestjs/common';
+import { TemporalModule, TemporalService } from 'nestjs-temporal-core';
+import { TemporalBridgeService } from '@gitroom/nestjs-libraries/temporal/bridge/bridge.client';
+
+// Fork: TEMPORAL_BRIDGE=postgres on the backend swaps the Temporal client for
+// the Postgres outbox (bridge/bridge.client.ts); the Daemon executes it.
+@Global()
+@Module({
+  providers: [{ provide: TemporalService, useValue: new TemporalBridgeService() }],
+  exports: [TemporalService],
+})
+class TemporalBridgeModule {}
 import { socialIntegrationList } from '@gitroom/nestjs-libraries/integrations/integration.manager';
 import { emailQueues } from '@gitroom/nestjs-libraries/temporal/email.queues';
 
@@ -7,6 +18,10 @@ export const getTemporalModule = (
   path?: string,
   activityClasses?: any[]
 ) => {
+  if (!isWorkers && process.env.TEMPORAL_BRIDGE === 'postgres') {
+    return TemporalBridgeModule as any;
+  }
+
   // Queues this worker server should NOT run, comma-separated
   // (e.g. EXCLUDE_QUEUE="reddit,x,twitch"). Use it to pin a queue to a single
   // server: exclude it on every server except the one that should own it.

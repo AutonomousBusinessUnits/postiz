@@ -7,7 +7,8 @@ export class TemporalRegister implements OnModuleInit {
   constructor(private _client: TemporalService) {}
 
   async onModuleInit(): Promise<void> {
-    if (process.env.TEMPORAL_TLS === 'true') {
+    // Fork: the bridge's dev server gets its search attributes at start
+    if (process.env.TEMPORAL_TLS === 'true' || process.env.TEMPORAL_BRIDGE) {
       return;
     }
     const connection = this._client?.client?.getRawClient()
