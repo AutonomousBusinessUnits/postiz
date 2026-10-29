@@ -6,9 +6,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends g++ make python
 # Temporal CLI: only used for TEMPORAL_BRIDGE=postgres (dev server inside the Daemon)
 RUN curl -sSfL https://temporal.download/cli.sh | sh -s -- --dir /usr/local && ln -sf /usr/local/bin/temporal /usr/bin/temporal || true
 RUN npm --no-update-notifier --no-fund --global install pnpm@10.6.1
+ENV CI=true
 WORKDIR /app
 COPY . /app
-RUN pnpm install --frozen-lockfile
+RUN pnpm install --frozen-lockfile --config.confirmModulesPurge=false
 RUN NODE_OPTIONS="--max-old-space-size=4096" pnpm run build:orchestrator
 ENV NODE_ENV=production
 CMD ["sh", "/app/var/vercel/worker.sh"]
